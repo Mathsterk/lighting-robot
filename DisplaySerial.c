@@ -31,7 +31,7 @@ static void * SerialOutThread( void * v )
 	struct SerialOutDriver * led = (struct SerialOutDriver*)v;
 	while(1)
 	{
-		if( led->readyFlag && led->did_init )
+		if( led->readyFlag )
 		{
 			fgetc(led->triggerDevice);
 			size_t r = fwrite(led->last_leds, sizeof(uint8_t), (led->total_leds*3), led->device);
@@ -48,30 +48,25 @@ static void * SerialOutThread( void * v )
 	return 0;
 }
 
-static void UpdateDeviceName(void* v) {
-	struct SerialOutDriver * led = (struct SerialOutDriver*)v;
-
-	led->readyFlag = 0;
-	const char* file = GetParameterS("device", "/dev/ttyACM0");
-
-	if(led->device) fclose(led->device);
-	led->device = fopen(file, "w");
-	if(led->triggerDevice) fclose(led->device);
-	led->triggerDevice = fopen(file, "r");
-	fprintf(stderr, "Devices ready%s\n", file);
-
-	if( !led->device )
-	{
-		fprintf( stderr,  "Error: Cannot find device.\n" );
-//			exit( -98 );
-	}
-	led->did_init = 1;
-}
-
 static void SerialUpdate(void * id, struct NoteFinder*nf)
 {
 	int i;
 	struct SerialOutDriver * led = (struct SerialOutDriver*)id;
+
+	if( !led->did_init )
+	{
+		led->did_init = 1;
+
+		led->device = fopen("/dev/ttyACM0", "w");
+		led->triggerDevice = fopen("/dev/ttyACM0", "r");
+		//libusb_open_device_with_vid_pid( NULL, 0x1a86, 0x7523 );
+
+		if( !led->device )
+		{
+			fprintf( stderr,  "Error: Cannot find device.\n" );
+//			exit( -98 );
+		}
+	}
 
 	while( led->readyFlag ) usleep(100);
 
@@ -124,7 +119,7 @@ static void SerialUpdate(void * id, struct NoteFinder*nf)
 		led->last_leds[i*3+1] = OutLEDs[source*3+0] * led->outamp;
 		led->last_leds[i*3+2] = OutLEDs[source*3+2] * led->outamp;
 	}
-	fprintf(stderr, "Ready");
+
 	led->readyFlag = 1;
 }
 
@@ -140,10 +135,6 @@ static void SerialParams(void * id )
 	led->yn = 9;		RegisterValue(  "lighty", PAINT, &led->yn, sizeof( led->yn ) );
 	led->rot90 = 0;	RegisterValue(  "rot90", PAINT, &led->rot90, sizeof( led->rot90 ) );
 	led->array = 0;	RegisterValue(  "ledarray", PAINT, &led->array, sizeof( led->array ) );
-
-	AddCallback("device", UpdateDeviceName, led);
-
-	UpdateDeviceName(led);
 
 	led->did_init = 0;
 }
