@@ -29,6 +29,7 @@ int set_screenx = 640;	REGISTER_PARAM( set_screenx, PAINT );
 int set_screeny = 480;	REGISTER_PARAM( set_screeny, PAINT );
 char sound_source[16]; 	REGISTER_PARAM( sound_source, PABUFFER );
 int cpu_autolimit = 1; 	REGISTER_PARAM( cpu_autolimit, PAINT );
+int limited_fps = 30; 	REGISTER_PARAM( limited_fps, PAINT );
 int sample_channel = -1;REGISTER_PARAM( sample_channel, PAINT );
 
 struct NoteFinder * nf;
@@ -94,7 +95,6 @@ void SoundCB( float * out, float * in, int samplesr, int * samplesp, struct Soun
 			fo /= channelin;
 			sound[soundhead] = fo;
 			soundhead = (soundhead+1)%SOUNDCBSIZE;
-		
 		}
 		else
 		{
@@ -236,7 +236,7 @@ int main(int argc, char ** argv)
 			*ThisDriver = 0;
 			ThisDriver++;
 		}
-	
+
 		printf( "Loading: %s\n", TDStart );
 		outdriver[i] = SetupOutDriver( TDStart );
 	}
@@ -278,6 +278,7 @@ int main(int argc, char ** argv)
 		int freqbins = nf->freqbins;
 		int note_peaks = freqbins/2;
 		int freqs = freqbins * nf->octaves;
+		double time_between_frame = 0;
 		//int maxdists = freqbins/2;
 
 		//Do a bunch of debugging.
@@ -394,7 +395,7 @@ int main(int argc, char ** argv)
 		ThisTime = OGGetAbsoluteTime();
 		if( ThisTime > LastFPSTime + 1 )
 		{
-//			printf( "FPS: %d\n", frames );
+			//printf( "FPS: %d\n", frames );
 			lastfps = frames;
 			frames = 0;
 			LastFPSTime+=1;
@@ -402,8 +403,9 @@ int main(int argc, char ** argv)
 
 		if( cpu_autolimit )
 		{
-			SecToWait = .016 - ( ThisTime - LastFrameTime );
-			LastFrameTime += .016;
+			time_between_frame = (1./limited_fps);
+			SecToWait = time_between_frame - ( ThisTime - LastFrameTime );
+			LastFrameTime += time_between_frame;
 			if( SecToWait < -.1 ) LastFrameTime = ThisTime - .1;
 			if( SecToWait > 0 )
 				OGUSleep( (int)( SecToWait * 1000000 ) );
@@ -425,4 +427,3 @@ int main(int argc, char ** argv)
 	}
 
 }
-
