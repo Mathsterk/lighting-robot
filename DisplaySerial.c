@@ -57,8 +57,8 @@ static void SerialUpdate(void * id, struct NoteFinder*nf)
 	{
 		led->did_init = 1;
 
-		led->device = fopen("/dev/ttyACM0", "w");
-		led->triggerDevice = fopen("/dev/ttyACM0", "r");
+		led->device = fopen("/dev/ttyACM1", "w");
+		led->triggerDevice = fopen("/dev/ttyACM1", "r");
 		//libusb_open_device_with_vid_pid( NULL, 0x1a86, 0x7523 );
 
 		if( !led->device )
