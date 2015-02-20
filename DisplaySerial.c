@@ -29,11 +29,15 @@ struct SerialOutDriver
 static void * SerialOutThread( void * v )
 {
 	struct SerialOutDriver * led = (struct SerialOutDriver*)v;
+	int read = 0;
 	while(1)
 	{
 		if( led->readyFlag )
 		{
-			fgetc(led->triggerDevice);
+			while((read=fgetc(led->triggerDevice)) == EOF) {
+				// fprintf(stderr, "%d - %d\n", read, EOF);
+				usleep(10);
+			}
 			size_t r = fwrite(led->last_leds, sizeof(uint8_t), (led->total_leds*3), led->device);
 			fflush(led->device);
 			if( r < 0 )
